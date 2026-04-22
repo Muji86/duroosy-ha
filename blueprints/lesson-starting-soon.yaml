@@ -133,7 +133,7 @@ action:
           - condition: template
             value_template: "{{ method == 'script' }}"
         sequence:
-          - action: !input script_entity
+          - service: "{{ !input script_entity }}"
             data:
               lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
               student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"

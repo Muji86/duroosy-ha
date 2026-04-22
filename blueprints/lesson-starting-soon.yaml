@@ -55,6 +55,19 @@ blueprint:
         entity:
           domain: media_player
 
+    message_template:
+      name: Announcement Message
+      description: >
+        The message to announce. You can use these variables:
+        {student_names} — first names in English (e.g. Hajar),
+        {student_names_ar} — first names in Arabic (e.g. هاجر),
+        {lesson_title} — lesson title,
+        {offset_label} — time until lesson (e.g. 15 minutes).
+      default: "{student_names}'s {lesson_title} lesson starts in {offset_label}."
+      selector:
+        text:
+          multiline: true
+
 variables:
   unit: !input reminder_unit
   mins: !input reminder_minutes
@@ -71,6 +84,16 @@ variables:
     {% else %}
       {{ mins }} minute{{ 's' if mins != 1 else '' }}
     {% endif %}
+  student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}"
+  student_names_ar: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names_ar') | join(' و ') | default('') }}"
+  lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
+  final_message: >
+    {% set tpl = !input message_template %}
+    {{ tpl
+       | replace('{student_names}', student_names)
+       | replace('{student_names_ar}', student_names_ar)
+       | replace('{lesson_title}', lesson_title)
+       | replace('{offset_label}', offset_label) }}
 
 trigger:
   - platform: template
@@ -95,8 +118,6 @@ action:
     data:
       entity_id: !input tts_entity
       media_player_entity_id: !input media_player
-      message: >
-        {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}'s
-        {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in {{ offset_label }}.
+      message: "{{ final_message }}"
 
 mode: single

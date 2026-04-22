@@ -1,25 +1,66 @@
 blueprint:
   name: "Duroosy — Lesson Starting Soon"
   description: >
-    Announces on a media player when a lesson is about to start.
+    Announces when a lesson is about to start. Choose how to announce:
+    speak via a TTS service, or call a script of your own.
     Requires the Duroosy integration to be installed and configured.
   domain: automation
   input:
-    media_player:
-      name: Media Player
-      description: The speaker or display to announce on.
-      selector:
-        entity:
-          domain: media_player
     minutes_before:
       name: Minutes Before
-      description: How many minutes before the lesson to announce.
+      description: How many minutes before the lesson to trigger the announcement.
       default: 15
       selector:
         number:
           min: 1
           max: 60
           unit_of_measurement: minutes
+
+    announce_method:
+      name: Announcement Method
+      description: Choose how to make the announcement.
+      default: tts
+      selector:
+        select:
+          options:
+            - label: "TTS (text-to-speech via speaker)"
+              value: tts
+            - label: "Run a script"
+              value: script
+
+    tts_entity:
+      name: TTS Service Entity
+      description: >
+        (TTS method only) The TTS service entity to use for speaking,
+        e.g. tts.home_assistant_cloud or tts.google_translate.
+      default: tts.home_assistant_cloud
+      selector:
+        entity:
+          domain: tts
+
+    media_player:
+      name: Media Player / Speaker
+      description: >
+        (TTS method only) The speaker or display to announce on.
+      default: ""
+      selector:
+        entity:
+          domain: media_player
+
+    script_entity:
+      name: Script
+      description: >
+        (Script method only) The script to call when the lesson is about to start.
+        The script will receive the following variables:
+        lesson_title, student_names, minutes_until_start.
+      default: ""
+      selector:
+        entity:
+          domain: script
+
+variables:
+  method: !input announce_method
+  mins: !input minutes_before
 
 trigger:
   - platform: numeric_state
@@ -31,17 +72,35 @@ condition:
   - condition: template
     value_template: >
       {{ (states('sensor.duroosy_next_lesson_minutes_until_start') | int(-1))
-         >= ((!input minutes_before | int) - 1) }}
+         >= ((mins | int) - 1) }}
 
 action:
-  - service: tts.speak
-    target:
-      entity_id: tts.home_assistant_cloud
-    data:
-      media_player_entity_id: !input media_player
-      message: >
-        {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | default('Your child') }}'s
-        {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in
-        {{ states('sensor.duroosy_next_lesson_minutes_until_start') }} minutes.
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ method == 'tts' }}"
+        sequence:
+          - service: tts.speak
+            target:
+              entity_id: !input tts_entity
+            data:
+              media_player_entity_id: !input media_player
+              message: >
+                {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') | default('Your child') }}'s
+                {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in
+                {{ states('sensor.duroosy_next_lesson_minutes_until_start') }} minutes.
+
+      - conditions:
+          - condition: template
+            value_template: "{{ method == 'script' }}"
+        sequence:
+          - service: script.turn_on
+            target:
+              entity_id: !input script_entity
+            data:
+              variables:
+                lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
+                student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"
+                minutes_until_start: "{{ states('sensor.duroosy_next_lesson_minutes_until_start') }}"
 
 mode: single

@@ -1,0 +1,47 @@
+blueprint:
+  name: "Duroosy — Lesson Starting Soon"
+  description: >
+    Announces on a media player when a lesson is about to start.
+    Requires the Duroosy integration to be installed and configured.
+  domain: automation
+  input:
+    media_player:
+      name: Media Player
+      description: The speaker or display to announce on.
+      selector:
+        entity:
+          domain: media_player
+    minutes_before:
+      name: Minutes Before
+      description: How many minutes before the lesson to announce.
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: minutes
+
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.duroosy_next_lesson_minutes_until_start
+    below: !input minutes_before
+    above: 0
+
+condition:
+  - condition: template
+    value_template: >
+      {{ (states('sensor.duroosy_next_lesson_minutes_until_start') | int(-1))
+         >= ((!input minutes_before | int) - 1) }}
+
+action:
+  - service: tts.speak
+    target:
+      entity_id: tts.home_assistant_cloud
+    data:
+      media_player_entity_id: !input media_player
+      message: >
+        {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | default('Your child') }}'s
+        {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in
+        {{ states('sensor.duroosy_next_lesson_minutes_until_start') }} minutes.
+
+mode: single

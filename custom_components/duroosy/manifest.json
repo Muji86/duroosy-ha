@@ -1,0 +1,11 @@
+{
+  "domain": "duroosy",
+  "name": "Duroosy",
+  "version": "1.0.0",
+  "documentation": "https://github.com/duroosy/duroosy-ha",
+  "issue_tracker": "https://github.com/duroosy/duroosy-ha/issues",
+  "requirements": [],
+  "codeowners": ["@duroosy"],
+  "iot_class": "cloud_polling",
+  "config_flow": true
+}

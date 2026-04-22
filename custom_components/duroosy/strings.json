@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Duroosy",
+        "description": "Enter your Duroosy API key. You can generate one in the Duroosy app under Profile → Home Assistant.",
+        "data": {
+          "api_key": "API Key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key — check your Duroosy profile.",
+      "cannot_connect": "Could not connect to Duroosy. Check your internet connection."
+    },
+    "abort": {
+      "already_configured": "Duroosy is already configured."
+    }
+  }
+}

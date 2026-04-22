@@ -58,12 +58,11 @@ blueprint:
     message_template:
       name: Announcement Message
       description: >
-        The message to announce. You can use these variables:
-        {student_names} — first names in English (e.g. Hajar),
-        {student_names_ar} — first names in Arabic (e.g. هاجر),
-        {lesson_title} — lesson title,
-        {offset_label} — time until lesson (e.g. 15 minutes).
-      default: "{student_names}'s {lesson_title} lesson starts in {offset_label}."
+        The message to announce. Use Jinja2 template syntax.
+        Available variables: student_names (English), student_names_ar (Arabic),
+        lesson_title, offset_label (e.g. "15 minutes").
+        Example: "{{ student_names }}'s {{ lesson_title }} lesson starts in {{ offset_label }}."
+      default: "{{ student_names }}'s {{ lesson_title }} lesson starts in {{ offset_label }}."
       selector:
         text:
           multiline: true
@@ -111,11 +110,6 @@ action:
     data:
       entity_id: !input tts_entity
       media_player_entity_id: !input media_player
-      message: >
-        {{ (!input message_template)
-           | replace('{student_names}', student_names)
-           | replace('{student_names_ar}', student_names_ar)
-           | replace('{lesson_title}', lesson_title)
-           | replace('{offset_label}', offset_label) }}
+      message: !input message_template
 
 mode: single

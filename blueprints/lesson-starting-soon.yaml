@@ -1,20 +1,42 @@
 blueprint:
   name: "Duroosy — Lesson Starting Soon"
   description: >
-    Announces when a lesson is about to start. Choose how to announce:
-    speak via a TTS service, or call a script of your own.
+    Announces when a lesson is about to start, triggered at an exact offset
+    before the lesson's start time. Choose TTS or a custom script.
     Requires the Duroosy integration to be installed and configured.
   domain: automation
   input:
-    minutes_before:
-      name: Minutes Before
-      description: How many minutes before the lesson to trigger the announcement.
+    reminder_unit:
+      name: Reminder Unit
+      description: Whether to set the reminder in minutes or hours.
+      default: minutes
+      selector:
+        select:
+          options:
+            - label: "Minutes before"
+              value: minutes
+            - label: "Hours before"
+              value: hours
+
+    reminder_minutes:
+      name: Minutes Before (if using minutes)
+      description: How many minutes before the lesson to announce.
       default: 15
       selector:
         number:
           min: 1
-          max: 60
+          max: 120
           unit_of_measurement: minutes
+
+    reminder_hours:
+      name: Hours Before (if using hours)
+      description: How many hours before the lesson to announce.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 24
+          unit_of_measurement: hours
 
     announce_method:
       name: Announcement Method
@@ -31,7 +53,7 @@ blueprint:
     tts_entity:
       name: TTS Service Entity
       description: >
-        (TTS method only) The TTS service entity to use for speaking,
+        (TTS method only) The TTS service entity to use,
         e.g. tts.home_assistant_cloud or tts.google_translate.
       default: tts.home_assistant_cloud
       selector:
@@ -40,8 +62,7 @@ blueprint:
 
     media_player:
       name: Media Player / Speaker
-      description: >
-        (TTS method only) The speaker or display to announce on.
+      description: (TTS method only) The speaker or display to announce on.
       default: ""
       selector:
         entity:
@@ -50,8 +71,7 @@ blueprint:
     script_entity:
       name: Script
       description: >
-        (Script method only) The script to call when the lesson is about to start.
-        The script will receive the following variables:
+        (Script method only) The script to call. Receives variables:
         lesson_title, student_names, minutes_until_start.
       default: ""
       selector:
@@ -60,19 +80,40 @@ blueprint:
 
 variables:
   method: !input announce_method
-  mins: !input minutes_before
+  unit: !input reminder_unit
+  mins: !input reminder_minutes
+  hrs: !input reminder_hours
+  offset_seconds: >
+    {% if unit == 'hours' %}
+      {{ hrs * 3600 }}
+    {% else %}
+      {{ mins * 60 }}
+    {% endif %}
+  offset_label: >
+    {% if unit == 'hours' %}
+      {{ hrs }} hour{{ 's' if hrs != 1 else '' }}
+    {% else %}
+      {{ mins }} minute{{ 's' if mins != 1 else '' }}
+    {% endif %}
 
 trigger:
-  - platform: numeric_state
-    entity_id: sensor.duroosy_next_lesson_minutes_until_start
-    below: !input minutes_before
-    above: 0
+  - platform: template
+    value_template: >
+      {% set start = state_attr('sensor.duroosy_next_lesson_start', 'start_time')
+                     or states('sensor.duroosy_next_lesson_start') %}
+      {% if start and start != 'unknown' and start != 'unavailable' %}
+        {% set start_ts = as_timestamp(start) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set diff = (start_ts - now_ts) | round(0) %}
+        {{ diff >= (offset_seconds | int - 30) and diff <= (offset_seconds | int + 30) }}
+      {% else %}
+        false
+      {% endif %}
 
 condition:
   - condition: template
     value_template: >
-      {{ (states('sensor.duroosy_next_lesson_minutes_until_start') | int(-1))
-         >= ((mins | int) - 1) }}
+      {{ states('sensor.duroosy_next_lesson_start') not in ['unknown', 'unavailable', ''] }}
 
 action:
   - choose:
@@ -86,9 +127,8 @@ action:
             data:
               media_player_entity_id: !input media_player
               message: >
-                {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') | default('Your child') }}'s
-                {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in
-                {{ states('sensor.duroosy_next_lesson_minutes_until_start') }} minutes.
+                {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}'s
+                {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in {{ offset_label }}.
 
       - conditions:
           - condition: template
@@ -101,6 +141,7 @@ action:
               variables:
                 lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
                 student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"
-                minutes_until_start: "{{ states('sensor.duroosy_next_lesson_minutes_until_start') }}"
+                minutes_until_start: "{{ ((offset_seconds | int) / 60) | round(0) }}"
+                offset_label: "{{ offset_label }}"
 
 mode: single

@@ -63,6 +63,7 @@ class DuroosyNextLessonTitleSensor(_DuroosyBaseSensor):
             return {}
         return {
             "student_names": lesson.get("student_names", []),
+            "student_names_ar": lesson.get("student_names_ar", []),
             "duration_minutes": lesson.get("duration_minutes"),
             "start_time": lesson.get("start_time"),
         }

@@ -4,7 +4,7 @@ Adds your Duroosy lesson schedule as sensors in Home Assistant, so you can build
 
 ## Installation
 
-1. In HACS → Custom Repositories, add `github.com/duroosy/duroosy-ha` as an **Integration**
+1. In HACS → Custom Repositories, add `Muji86/duroosy-ha` as an **Integration**
 2. Search for "Duroosy" and install
 3. Restart Home Assistant
 4. Go to **Settings → Devices & Services → Add Integration** → search "Duroosy"

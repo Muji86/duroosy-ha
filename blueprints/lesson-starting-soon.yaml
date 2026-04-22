@@ -87,13 +87,6 @@ variables:
   student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}"
   student_names_ar: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names_ar') | join(' و ') | default('') }}"
   lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
-  final_message: >
-    {% set tpl = !input message_template %}
-    {{ tpl
-       | replace('{student_names}', student_names)
-       | replace('{student_names_ar}', student_names_ar)
-       | replace('{lesson_title}', lesson_title)
-       | replace('{offset_label}', offset_label) }}
 
 trigger:
   - platform: template
@@ -118,6 +111,11 @@ action:
     data:
       entity_id: !input tts_entity
       media_player_entity_id: !input media_player
-      message: "{{ final_message }}"
+      message: >
+        {{ (!input message_template)
+           | replace('{student_names}', student_names)
+           | replace('{student_names_ar}', student_names_ar)
+           | replace('{lesson_title}', lesson_title)
+           | replace('{offset_label}', offset_label) }}
 
 mode: single

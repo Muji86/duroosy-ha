@@ -1,8 +1,8 @@
 blueprint:
   name: "Duroosy — Lesson Starting Soon"
   description: >
-    Announces when a lesson is about to start, triggered at an exact offset
-    before the lesson's start time. Choose TTS or a custom script.
+    Announces on a speaker when a lesson is about to start.
+    Triggered at an exact time offset before the lesson's start time.
     Requires the Duroosy integration to be installed and configured.
   domain: automation
   input:
@@ -38,22 +38,10 @@ blueprint:
           max: 24
           unit_of_measurement: hours
 
-    announce_method:
-      name: Announcement Method
-      description: Choose how to make the announcement.
-      default: tts
-      selector:
-        select:
-          options:
-            - label: "TTS (text-to-speech via speaker)"
-              value: tts
-            - label: "Run a script"
-              value: script
-
     tts_entity:
       name: TTS Service Entity
       description: >
-        (TTS method only) The TTS service entity to use,
+        The TTS service entity to use,
         e.g. tts.home_assistant_cloud or tts.google_translate.
       default: tts.home_assistant_cloud
       selector:
@@ -62,24 +50,12 @@ blueprint:
 
     media_player:
       name: Media Player / Speaker
-      description: (TTS method only) The speaker or display to announce on.
-      default: ""
+      description: The speaker or display to announce on.
       selector:
         entity:
           domain: media_player
 
-    script_entity:
-      name: Script
-      description: >
-        (Script method only) The script to call. Receives variables:
-        lesson_title, student_names, minutes_until_start.
-      default: ""
-      selector:
-        entity:
-          domain: script
-
 variables:
-  method: !input announce_method
   unit: !input reminder_unit
   mins: !input reminder_minutes
   hrs: !input reminder_hours
@@ -99,9 +75,8 @@ variables:
 trigger:
   - platform: template
     value_template: >
-      {% set start = state_attr('sensor.duroosy_next_lesson_start', 'start_time')
-                     or states('sensor.duroosy_next_lesson_start') %}
-      {% if start and start != 'unknown' and start != 'unavailable' %}
+      {% set start = states('sensor.duroosy_next_lesson_start') %}
+      {% if start not in ['unknown', 'unavailable', ''] %}
         {% set start_ts = as_timestamp(start) %}
         {% set now_ts = as_timestamp(now()) %}
         {% set diff = (start_ts - now_ts) | round(0) %}
@@ -116,30 +91,12 @@ condition:
       {{ states('sensor.duroosy_next_lesson_start') not in ['unknown', 'unavailable', ''] }}
 
 action:
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ method == 'tts' }}"
-        sequence:
-          - action: tts.speak
-            data:
-              entity_id: !input tts_entity
-              media_player_entity_id: !input media_player
-              message: >
-                {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}'s
-                {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in {{ offset_label }}.
-
-      - conditions:
-          - condition: template
-            value_template: "{{ method == 'script' }}"
-        sequence:
-          - service: script.turn_on
-            data:
-              entity_id: !input script_entity
-              variables:
-                lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
-                student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"
-                minutes_until_start: "{{ ((offset_seconds | int) / 60) | round(0) }}"
-                offset_label: "{{ offset_label }}"
+  - action: tts.speak
+    data:
+      entity_id: !input tts_entity
+      media_player_entity_id: !input media_player
+      message: >
+        {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}'s
+        {{ states('sensor.duroosy_next_lesson_title') }} lesson starts in {{ offset_label }}.
 
 mode: single

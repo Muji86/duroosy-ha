@@ -121,10 +121,9 @@ action:
           - condition: template
             value_template: "{{ method == 'tts' }}"
         sequence:
-          - service: tts.speak
-            target:
-              entity_id: !input tts_entity
+          - action: tts.speak
             data:
+              entity_id: !input tts_entity
               media_player_entity_id: !input media_player
               message: >
                 {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}'s
@@ -134,14 +133,11 @@ action:
           - condition: template
             value_template: "{{ method == 'script' }}"
         sequence:
-          - service: script.turn_on
-            target:
-              entity_id: !input script_entity
+          - action: !input script_entity
             data:
-              variables:
-                lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
-                student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"
-                minutes_until_start: "{{ ((offset_seconds | int) / 60) | round(0) }}"
-                offset_label: "{{ offset_label }}"
+              lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
+              student_names: "{{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(', ') }}"
+              minutes_until_start: "{{ ((offset_seconds | int) / 60) | round(0) }}"
+              offset_label: "{{ offset_label }}"
 
 mode: single

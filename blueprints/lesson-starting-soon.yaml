@@ -46,9 +46,7 @@ blueprint:
 
     message_template:
       name: Announcement Message
-      description: >
-        (TTS only) Jinja2 template for the spoken message.
-        Available variables: student_names, student_names_ar, lesson_title, offset_label.
+      description: "(TTS only) Jinja2 template for the spoken message. Variables: student_names, student_names_ar, lesson_title, offset_label."
       default: "{{ student_names }}'s {{ lesson_title }} lesson starts in {{ offset_label }}."
       selector:
         text:
@@ -56,9 +54,7 @@ blueprint:
 
     script_entity:
       name: Script
-      description: >
-        (Script only) Script to run. The following variables are passed:
-        student_names, student_names_ar, lesson_title, offset_label, offset_seconds.
+      description: "(Script only) Script to run. Variables passed: student_names, student_names_ar, lesson_title, offset_label, offset_seconds."
       default: script.duroosy_lesson_reminder
       selector:
         entity:

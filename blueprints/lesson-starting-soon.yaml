@@ -47,7 +47,7 @@ blueprint:
     message_template:
       name: Announcement Message
       description: (TTS only) Jinja2 template for the spoken message.
-      default: "Lesson starting soon."
+      default: "{{ student_names }}'s {{ lesson_title }} lesson starts in {{ offset_label }}."
       selector:
         text:
           multiline: true
@@ -63,6 +63,12 @@ blueprint:
 variables:
   reminder_minutes: !input reminder_minutes
   method: !input announce_method
+  student_names: >
+    {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}
+  student_names_ar: >
+    {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names_ar') | join(' و ') | default('') }}
+  lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
+  offset_label: "{{ reminder_minutes }} minute{{ 's' if reminder_minutes | int != 1 else '' }}"
 
 trigger:
   - platform: template
@@ -91,5 +97,12 @@ action:
       - action: script.turn_on
         target:
           entity_id: !input script_entity
+        data:
+          variables:
+            student_names: "{{ student_names }}"
+            student_names_ar: "{{ student_names_ar }}"
+            lesson_title: "{{ lesson_title }}"
+            offset_label: "{{ offset_label }}"
+            offset_seconds: "{{ reminder_minutes | int * 60 }}"
 
 mode: single

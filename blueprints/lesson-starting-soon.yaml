@@ -109,9 +109,7 @@ variables:
 trigger:
   - platform: template
     value_template: >
-      {{ states('sensor.time') != '' and
-         states('sensor.duroosy_next_lesson_start') not in ['unknown', 'unavailable', ''] and
-         states('sensor.time') == (
+      {{ states('sensor.time') == (
            (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
            - offset_seconds | int
            | timestamp_custom('%H:%M', true)

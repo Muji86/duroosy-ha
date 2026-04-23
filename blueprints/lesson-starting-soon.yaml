@@ -69,7 +69,7 @@ trigger:
     value_template: >
       {{ states('sensor.time') == (
            (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
-           - reminder_minutes * 60
+           - (reminder_minutes | int) * 60
            | timestamp_custom('%H:%M', true)
          ) }}
 

@@ -71,17 +71,19 @@ variables:
   offset_label: "{{ reminder_minutes }} minute{{ 's' if reminder_minutes | int != 1 else '' }}"
 
 trigger:
-  - platform: template
-    value_template: >
-      {{ states('sensor.time') == (
-           (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
-           - (reminder_minutes | int) * 60
-         ) | timestamp_custom('%H:%M', true) }}
+  - platform: state
+    entity_id: sensor.time
 
 condition:
   - condition: template
     value_template: >
       {{ as_datetime(states('sensor.duroosy_next_lesson_start')).date() == now().date() }}
+  - condition: template
+    value_template: >
+      {{ states('sensor.time') == (
+           (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
+           - (reminder_minutes | int) * 60
+         ) | timestamp_custom('%H:%M', true) }}
 
 action:
   - if:

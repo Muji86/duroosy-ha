@@ -73,6 +73,11 @@ trigger:
            | timestamp_custom('%H:%M', true)
          ) }}
 
+condition:
+  - condition: template
+    value_template: >
+      {{ as_datetime(states('sensor.duroosy_next_lesson_start')).date() == now().date() }}
+
 action:
   - if:
       - condition: template

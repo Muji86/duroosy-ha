@@ -73,6 +73,7 @@ class DuroosyNextLessonStartSensor(_DuroosyBaseSensor):
     _attr_name = "Duroosy Next Lesson Start"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:calendar-clock"
+    _attr_force_update = True
 
     def __init__(self, coordinator: DuroosyCoordinator) -> None:
         super().__init__(coordinator, "next_lesson_start")

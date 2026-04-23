@@ -27,8 +27,12 @@ async def async_setup_entry(
 
 def _next_lesson(coordinator: DuroosyCoordinator) -> dict | None:
     lessons = (coordinator.data or {}).get("lessons", [])
-    now_iso = datetime.now(timezone.utc).isoformat()
-    upcoming = [l for l in lessons if l.get("start_time", "") >= now_iso]
+    now = datetime.now(timezone.utc)
+    upcoming = [
+        l for l in lessons
+        if datetime.fromisoformat(l["start_time"]).astimezone(timezone.utc) > now
+        and l.get("start_time")
+    ]
     return upcoming[0] if upcoming else None
 
 

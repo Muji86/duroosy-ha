@@ -6,20 +6,8 @@ blueprint:
     Requires the Duroosy integration to be installed and configured.
   domain: automation
   input:
-    reminder_unit:
-      name: Reminder Unit
-      description: Whether to set the reminder in minutes or hours.
-      default: minutes
-      selector:
-        select:
-          options:
-            - label: "Minutes before"
-              value: minutes
-            - label: "Hours before"
-              value: hours
-
     reminder_minutes:
-      name: Minutes Before (if using minutes)
+      name: Minutes Before
       description: How many minutes before the lesson to announce.
       default: 15
       selector:
@@ -27,16 +15,6 @@ blueprint:
           min: 1
           max: 120
           unit_of_measurement: minutes
-
-    reminder_hours:
-      name: Hours Before (if using hours)
-      description: How many hours before the lesson to announce.
-      default: 1
-      selector:
-        number:
-          min: 1
-          max: 24
-          unit_of_measurement: hours
 
     announce_method:
       name: Announcement Method
@@ -52,8 +30,7 @@ blueprint:
 
     tts_entity:
       name: TTS Service Entity
-      description: >
-        (TTS only) The TTS service entity, e.g. tts.home_assistant_cloud.
+      description: (TTS only) The TTS service entity, e.g. tts.home_assistant_cloud.
       default: tts.home_assistant_cloud
       selector:
         entity:
@@ -69,56 +46,32 @@ blueprint:
 
     message_template:
       name: Announcement Message
-      description: >
-        (TTS only) Jinja2 template for the spoken message.
-        Variables: student_names, student_names_ar, lesson_title, offset_label.
-      default: "{{ student_names }}'s {{ lesson_title }} lesson starts in {{ offset_label }}."
+      description: (TTS only) Jinja2 template for the spoken message.
+      default: "Lesson starting soon."
       selector:
         text:
           multiline: true
 
     script_entity:
       name: Script
-      description: >
-        (Script only) Script to run. Receives: student_names, student_names_ar,
-        lesson_title, offset_label, offset_seconds.
+      description: (Script only) Script to run.
       default: script.duroosy_lesson_reminder
       selector:
         entity:
           domain: script
 
 variables:
-  unit: !input reminder_unit
-  mins: !input reminder_minutes
-  hrs: !input reminder_hours
+  reminder_minutes: !input reminder_minutes
   method: !input announce_method
-  offset_seconds: >
-    {% if unit == 'hours' %}{{ hrs * 3600 }}{% else %}{{ mins * 60 }}{% endif %}
-  offset_label: >
-    {% if unit == 'hours' %}
-      {{ hrs }} hour{{ 's' if hrs != 1 else '' }}
-    {% else %}
-      {{ mins }} minute{{ 's' if mins != 1 else '' }}
-    {% endif %}
-  student_names: >
-    {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names') | join(' and ') | default('Your child') }}
-  student_names_ar: >
-    {{ state_attr('sensor.duroosy_next_lesson_title', 'student_names_ar') | join(' و ') | default('') }}
-  lesson_title: "{{ states('sensor.duroosy_next_lesson_title') }}"
 
 trigger:
   - platform: template
     value_template: >
       {{ states('sensor.time') == (
            (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
-           - offset_seconds | int
+           - reminder_minutes * 60
            | timestamp_custom('%H:%M', true)
          ) }}
-
-condition:
-  - condition: template
-    value_template: >
-      {{ states('sensor.duroosy_next_lesson_start') not in ['unknown', 'unavailable', ''] }}
 
 action:
   - if:
@@ -134,12 +87,5 @@ action:
       - action: script.turn_on
         target:
           entity_id: !input script_entity
-        data:
-          variables:
-            student_names: "{{ student_names }}"
-            student_names_ar: "{{ student_names_ar }}"
-            lesson_title: "{{ lesson_title }}"
-            offset_label: "{{ offset_label }}"
-            offset_seconds: "{{ offset_seconds }}"
 
 mode: single

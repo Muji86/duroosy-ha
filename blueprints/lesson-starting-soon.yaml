@@ -109,13 +109,13 @@ variables:
 trigger:
   - platform: template
     value_template: >
-      {% set start = states('sensor.duroosy_next_lesson_start') %}
-      {% if start not in ['unknown', 'unavailable', ''] %}
-        {% set target = (as_datetime(start) | as_local).timestamp() - offset_seconds | int %}
-        {{ states('sensor.time') == (target | timestamp_custom('%H:%M', true)) }}
-      {% else %}
-        false
-      {% endif %}
+      {{ states('sensor.time') != '' and
+         states('sensor.duroosy_next_lesson_start') not in ['unknown', 'unavailable', ''] and
+         states('sensor.time') == (
+           (as_datetime(states('sensor.duroosy_next_lesson_start')) | as_local).timestamp()
+           - offset_seconds | int
+           | timestamp_custom('%H:%M', true)
+         ) }}
 
 condition:
   - condition: template

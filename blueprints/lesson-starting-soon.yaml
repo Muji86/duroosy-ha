@@ -111,8 +111,8 @@ trigger:
     value_template: >
       {% set start = states('sensor.duroosy_next_lesson_start') %}
       {% if start not in ['unknown', 'unavailable', ''] %}
-        {% set diff = (as_timestamp(start) - as_timestamp(now())) | round(0) %}
-        {{ diff >= (offset_seconds | int - 30) and diff <= (offset_seconds | int + 30) }}
+        {% set target = (as_datetime(start) | as_local).timestamp() - offset_seconds | int %}
+        {{ states('sensor.time') == (target | timestamp_custom('%H:%M', true)) }}
       {% else %}
         false
       {% endif %}
